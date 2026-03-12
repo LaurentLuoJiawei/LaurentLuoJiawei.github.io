@@ -6,7 +6,7 @@
   <link href="https://laurentluojiawei.github.io/atom.xml" rel="self"/>
   
   <link href="https://laurentluojiawei.github.io/"/>
-  <updated>2022-06-12T16:34:14.304Z</updated>
+  <updated>2026-03-12T13:44:14.250Z</updated>
   <id>https://laurentluojiawei.github.io/</id>
   
   <author>
@@ -16,6 +16,26 @@
   
   <generator uri="https://hexo.io/">Hexo</generator>
   
+  <entry>
+    <title>dj-analyze Memory-Safety Configuration: batch/block/prefetch/streaming &amp; Ray DataContext</title>
+    <link href="https://laurentluojiawei.github.io/2026/03/12/dj-analyze-memory-safety/"/>
+    <id>https://laurentluojiawei.github.io/2026/03/12/dj-analyze-memory-safety/</id>
+    <published>2026-03-12T13:44:14.250Z</published>
+    <updated>2026-03-12T13:44:14.250Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="Overview">Overview</h2><p>When running <code>dj-analyze</code> (Data-Juicer&#39;s analysis sub-command) on large datasets — especially with Ray as the execution backend — several memory-safety related configuration knobs control how data is loaded, buffered, and processed. This post documents those options across four categories: <strong>batch</strong>, <strong>block</strong>, <strong>prefetch</strong>, and <strong>streaming</strong>.</p><h2 id="Batch-Configuration">1. Batch Configuration</h2><p>Batch-level options control how many rows are processed together in each worker call. Options include <code>--batch_size</code>, <code>--adaptive_batch_size</code> (visible in <code>dj-analyze --help</code>), and Ray DataContext&#39;s <code>target_max_block_size</code> (not exposed as a CLI flag).</p><h2 id="Block-Configuration">2. Block (Ray Dataset) Configuration</h2><p>Ray&#39;s Dataset abstraction partitions data into <em>blocks</em>. Key options: <code>DataContext.target_max_block_size</code> (default 512 MiB), <code>target_min_block_size</code>, and <code>block_splitting_enabled</code>.</p><h2 id="Prefetch-Configuration">3. Prefetch Configuration</h2><p>Set <code>DataContext.prefetch_blocks = 0</code> to disable speculative prefetching and reduce memory usage on constrained machines.</p><h2 id="Streaming-Configuration">4. Streaming / Lazy Execution Configuration</h2><p>Use <code>use_cache: false</code> in Data-Juicer YAML and configure <code>DataContext.execution_options</code> for streaming execution.</p><h2 id="Troubleshooting">5. Troubleshooting</h2><p><strong>5.1</strong> <code>dj-analyze --help | grep -i batch</code> shows <code>--adaptive_batch_size</code> but NOT Ray DataContext options. This is expected: DataContext is a Ray runtime singleton, not a CLI argument. Use a Python launcher wrapper to set DataContext before calling Data-Juicer.</p><p><strong>5.2</strong> To locate Ray DataContext usage in a checked-out repo, run from the repo root (the directory containing <code>data_juicer/</code>): <code>grep -rn "DataContext" data_juicer/ --include="*.py"</code></p><p><strong>5.3</strong> Directory name confusion: <code>data-juicer</code> (hyphen, repo/pip name) ≠ <code>data_juicer</code> (underscore, importable Python package). The <code>grep</code> target must always use the underscore form. Running grep from the wrong directory causes <code>No such file or directory</code> errors unrelated to the code itself.</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;Documents memory-safety related configuration options for dj-analyze / Data-Juicer (batch/block/prefetch/streaming). Covers the --adaptive_batch_size CLI flag, Ray DataContext options not exposed in --help, a script to locate DataContext usage in a checked-out repo, and notes on directory name confusion when running grep.&lt;/p&gt;</summary>
+      
+    
+    
+    
+    
+  </entry>
+
   <entry>
     <title>Hello World</title>
     <link href="https://laurentluojiawei.github.io/2022/06/13/hello-world/"/>
