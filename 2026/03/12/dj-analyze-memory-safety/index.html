@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>dj-analyze Memory-Safety Configuration: batch/block/prefetch/streaming & Ray DataContext | Hexo</title><meta name="author" content="John Doe"><meta name="copyright" content="John Doe"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Documents memory-safety related configuration options for dj-analyze / Data-Juicer including batch, block, prefetch and streaming settings. Includes a troubleshooting section covering dj-analyze --help output gaps, a script to locate Ray DataContext usage in a checked-out repo, and notes on directory name confusion when running grep.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="dj-analyze Memory-Safety Configuration: batch/block/prefetch/streaming &amp; Ray DataContext">
+<meta property="og:url" content="https://laurentluojiawei.github.io/2026/03/12/dj-analyze-memory-safety/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Documents memory-safety related configuration options for dj-analyze / Data-Juicer including batch, block, prefetch and streaming settings. Includes a troubleshooting section covering dj-analyze --help output gaps, a script to locate Ray DataContext usage in a checked-out repo, and notes on directory name confusion when running grep.">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-03-12T13:44:14.250Z">
+<meta property="article:modified_time" content="2026-03-12T13:44:14.250Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://laurentluojiawei.github.io/2026/03/12/dj-analyze-memory-safety/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'dj-analyze Memory-Safety Configuration',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2026-03-12 13:44:14'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://i.loli.net/2021/02/24/5O1day2nriDzjSu.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">0</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">0</div></a></div><hr/></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Hexo</a></span><div id="menus"><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">dj-analyze Memory-Safety Configuration: batch/block/prefetch/streaming &amp; Ray DataContext</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-03-12T13:44:14.250Z" title="Created 2026-03-12 13:44:14">2026-03-12</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-03-12T13:44:14.250Z" title="Updated 2026-03-12 13:44:14">2026-03-12</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="dj-analyze Memory-Safety Configuration"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container">
+
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2>
+<p>When running <code>dj-analyze</code> (Data-Juicer&#39;s analysis sub-command) on large datasets — especially with Ray as the execution backend — several memory-safety related configuration knobs control how data is loaded, buffered, and processed. This post documents those options across four categories: <strong>batch</strong>, <strong>block</strong>, <strong>prefetch</strong>, and <strong>streaming</strong>.</p>
+
+<h2 id="Batch-Configuration"><a href="#Batch-Configuration" class="headerlink" title="Batch Configuration"></a>1. Batch Configuration</h2>
+<p>Batch-level options control how many rows are processed together in each worker call. Keeping batch sizes small reduces the peak RSS of each Ray worker.</p>
+<table>
+<thead><tr><th>Option</th><th>Layer</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>--batch_size</code></td><td>Data-Juicer YAML / CLI</td><td>Number of samples sent to each operator call. Smaller values lower per-worker memory but increase scheduling overhead.</td></tr>
+<tr><td><code>--adaptive_batch_size</code></td><td>Data-Juicer CLI flag</td><td>When enabled, Data-Juicer automatically shrinks <code>batch_size</code> if an OOM is detected and retries. Visible in <code>dj-analyze --help</code>.</td></tr>
+<tr><td><code>DataContext.target_max_block_size</code></td><td>Ray DataContext (Python)</td><td>Maximum bytes per Ray Dataset block. Indirectly caps the batch size seen inside each map call. <em>Not</em> exposed as a CLI flag; must be set in Python before launching a job.</td></tr>
+</tbody>
+</table>
+
+<h2 id="Block-Configuration"><a href="#Block-Configuration" class="headerlink" title="Block Configuration"></a>2. Block (Ray Dataset) Configuration</h2>
+<p>Ray&#39;s Dataset abstraction partitions data into <em>blocks</em>. Each block is held in the object store; tuning block sizes is the primary lever for preventing spill-to-disk or OOM in the Ray object store.</p>
+<table>
+<thead><tr><th>Option</th><th>Layer</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>DataContext.target_max_block_size</code></td><td>Ray DataContext</td><td>Default: 512 MiB. Larger values reduce scheduling overhead but increase object-store pressure. Reduce to e.g. <code>128 * 1024**2</code> (128 MiB) when processing large text rows.</td></tr>
+<tr><td><code>DataContext.target_min_block_size</code></td><td>Ray DataContext</td><td>Minimum block size. Very small blocks can cause excessive scheduling noise; usually leave at default.</td></tr>
+<tr><td><code>DataContext.block_splitting_enabled</code></td><td>Ray DataContext</td><td>When <code>True</code> (default in recent Ray versions), Ray will dynamically split oversized blocks. Disable only if you observe excessive split-overhead.</td></tr>
+</tbody>
+</table>
+
+<p>Example (set before constructing any Ray Dataset):</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> ray</span><br><span class="line"><span class="keyword">from</span> ray.data <span class="keyword">import</span> DataContext</span><br><span class="line"></span><br><span class="line">ctx = DataContext.get_current()</span><br><span class="line">ctx.target_max_block_size = <span class="number">128</span> * <span class="number">1024</span> ** <span class="number">2</span>  <span class="comment"># 128 MiB</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Prefetch-Configuration"><a href="#Prefetch-Configuration" class="headerlink" title="Prefetch Configuration"></a>3. Prefetch Configuration</h2>
+<p>Prefetching trades extra memory for lower I/O wait time. On memory-constrained machines, reducing prefetch depth is often the fastest way to recover from OOM without changing algorithmic batch sizes.</p>
+<table>
+<thead><tr><th>Option</th><th>Layer</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>DataContext.prefetch_blocks</code></td><td>Ray DataContext</td><td>Number of blocks to prefetch per consumer. Default: 1. Set to <code>0</code> to disable prefetching entirely (lowest memory usage).</td></tr>
+<tr><td><code>prefetch_factor</code> in PyTorch DataLoader</td><td>Dataset / training loop</td><td>If Data-Juicer is embedded in a training pipeline, the DataLoader prefetch factor independently buffers batches. Reduce if GPU memory is tight during analysis.</td></tr>
+</tbody>
+</table>
+
+<h2 id="Streaming-Configuration"><a href="#Streaming-Configuration" class="headerlink" title="Streaming Configuration"></a>4. Streaming / Lazy Execution Configuration</h2>
+<p>Ray Datasets can execute in <em>streaming</em> (lazy, pipeline) mode, which avoids materialising the entire dataset in the object store. This is the most impactful memory-safety feature for large datasets.</p>
+<table>
+<thead><tr><th>Option</th><th>Layer</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>use_cache</code> in Data-Juicer YAML</td><td>Data-Juicer config</td><td>Set to <code>false</code> to skip Arrow IPC caching of intermediate results. Reduces disk and memory usage for single-pass analysis.</td></tr>
+<tr><td><code>DataContext.execution_options.preserve_order</code></td><td>Ray DataContext</td><td>When <code>False</code> (default), Ray can reorder output for better throughput. Keeps pipeline memory lower; only set to <code>True</code> if output order matters.</td></tr>
+<tr><td><code>DataContext.execution_options.resource_limits.object_store_memory</code></td><td>Ray DataContext</td><td>Hard cap on bytes the streaming executor may use in the object store. Useful as a safety rail on shared machines.</td></tr>
+<tr><td><code>--np</code> / <code>num_proc</code></td><td>Data-Juicer CLI / YAML</td><td>Number of parallel processes. Fewer workers means fewer concurrent blocks in memory. A quick knob when total RAM is the bottleneck.</td></tr>
+</tbody>
+</table>
+
+<h2 id="Troubleshooting"><a href="#Troubleshooting" class="headerlink" title="Troubleshooting"></a>5. Troubleshooting</h2>
+
+<h3 id="dj-analyze-help-shows-adaptive_batch_size-but-not-Ray-DataContext-options"><a href="#dj-analyze-help-shows-adaptive_batch_size-but-not-Ray-DataContext-options" class="headerlink" title="dj-analyze --help shows --adaptive_batch_size but not Ray DataContext options"></a>5.1 <code>dj-analyze --help | grep -i batch</code> shows <code>--adaptive_batch_size</code> but not Ray DataContext options</h3>
+<p>This is expected behaviour. <code>dj-analyze --help</code> only surfaces the flags that Data-Juicer parses directly from its own argument parser. Ray&#39;s <code>DataContext</code> is a runtime singleton that must be configured <em>in Python code</em> (or via environment variables) before any <code>ray.data</code> call is made. It is not wired into the CLI argument parser.</p>
+<p><strong>What you will see:</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ dj-analyze --help | grep -i batch</span><br><span class="line">  --adaptive_batch_size   Automatically shrink batch size on OOM and retry.</span><br></pre></td></tr></table></figure>
+<p><strong>What you will NOT see in <code>--help</code>:</strong> <code>target_max_block_size</code>, <code>prefetch_blocks</code>, <code>execution_options.*</code>, or any other <code>DataContext</code> attribute — these are Ray internals.</p>
+<p><strong>Workaround</strong> — wrap <code>dj-analyze</code> with a thin Python launcher that sets <code>DataContext</code> before handing control to Data-Juicer:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment"># launch_dj_analyze.py  -- tune Ray DataContext before dj-analyze starts</span></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">from</span> ray.data <span class="keyword">import</span> DataContext</span><br><span class="line"></span><br><span class="line">ctx = DataContext.get_current()</span><br><span class="line">ctx.target_max_block_size = <span class="number">128</span> * <span class="number">1024</span> ** <span class="number">2</span>   <span class="comment"># 128 MiB per block</span></span><br><span class="line">ctx.prefetch_blocks = <span class="number">0</span>                        <span class="comment"># disable prefetch</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Hand off to Data-Juicer's real entry-point</span></span><br><span class="line"><span class="keyword">from</span> data_juicer.tools.analyze <span class="keyword">import</span> main</span><br><span class="line">sys.exit(main())</span><br><span class="line"></span><br><span class="line"><span class="comment"># Run as: python launch_dj_analyze.py --config my_config.yaml</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Locating-Ray-DataContext-usage-in-a-checked-out-Data-Juicer-repo"><a href="#Locating-Ray-DataContext-usage-in-a-checked-out-Data-Juicer-repo" class="headerlink" title="Locating Ray DataContext usage in a checked-out Data-Juicer repo"></a>5.2 Locating Ray DataContext usage in a checked-out Data-Juicer repo</h3>
+<p>To understand how (and whether) Data-Juicer already configures <code>DataContext</code>, run the following script from the <strong>root of the cloned repo</strong> (i.e. the directory that contains <code>data_juicer/</code>):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env bash</span></span><br><span class="line"><span class="comment"># find_ray_datacontext.sh</span></span><br><span class="line"><span class="comment"># Run from the root of the data-juicer checkout (directory containing data_juicer/).</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">set</span> -euo pipefail</span><br><span class="line"></span><br><span class="line"><span class="comment"># Guard: make sure we are in the right directory</span></span><br><span class="line"><span class="keyword">if</span> [[ ! -d <span class="string">&quot;data_juicer&quot;</span> ]]; <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;ERROR: 'data_juicer/' directory not found.&quot;</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;Please cd into the root of the data-juicer repo first, e.g.:&quot;</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;  git clone https://github.com/datajuicer/data-juicer.git&quot;</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;  cd data-juicer&quot;</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;  bash find_ray_datacontext.sh&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> 1</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Searching for DataContext imports and usages ===&quot;</span></span><br><span class="line">grep -rn <span class="string">&quot;DataContext&quot;</span> data_juicer/ --include=<span class="string">&quot;*.py&quot;</span> || <span class="built_in">echo</span> <span class="string">&quot;(none found — Data-Juicer does not configure DataContext itself)&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Searching for target_max_block_size / prefetch_blocks ===&quot;</span></span><br><span class="line">grep -rn <span class="string">&quot;target_max_block_size\|prefetch_blocks\|block_splitting&quot;</span> data_juicer/ --include=<span class="string">&quot;*.py&quot;</span> || <span class="built_in">echo</span> <span class="string">&quot;(none found)&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="Directory-name-confusion-when-running-grep"><a href="#Directory-name-confusion-when-running-grep" class="headerlink" title="Directory name confusion when running grep"></a>5.3 Directory name confusion when running grep</h3>
+<p>A common mistake is running the grep commands above from the <em>wrong</em> directory. The Python package directory is <code>data_juicer/</code> (with an <strong>underscore</strong>), while the GitHub repository root is typically named <code>data-juicer/</code> (with a <strong>hyphen</strong>). If you run:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep -rn <span class="string">&quot;DataContext&quot;</span> data_juicer/</span><br></pre></td></tr></table></figure>
+<p>…from <em>inside</em> the <code>data-juicer/</code> repository root, it will work correctly. But if you are in any other directory (e.g. your home directory, or a parent directory that only contains the <code>data-juicer/</code> folder at a deeper level), you will get a <code>grep: data_juicer/: No such file or directory</code> error that has nothing to do with the code — it is purely a shell working-directory issue.</p>
+<p><strong>Quick check:</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Confirm you are in the right place before grepping</span></span><br><span class="line"><span class="built_in">pwd</span>            <span class="comment"># should end in .../data-juicer</span></span><br><span class="line">ls data_juicer/ <span class="comment"># should list Python source files</span></span><br><span class="line"><span class="comment"># Then safe to run:</span></span><br><span class="line">grep -rn <span class="string">&quot;DataContext&quot;</span> data_juicer/ --include=<span class="string">&quot;*.py&quot;</span></span><br></pre></td></tr></table></figure>
+<p>Note: <code>data-juicer</code> (hyphen, the <em>repo / pip package name</em>) ≠ <code>data_juicer</code> (underscore, the <em>importable Python package directory</em>). The <code>grep</code> target must always use the underscore form.</p>
+
+<h2 id="Summary-of-recommended-settings"><a href="#Summary-of-recommended-settings" class="headerlink" title="Summary of recommended settings"></a>6. Summary of Recommended Settings for Memory-Constrained Machines</h2>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> ray</span><br><span class="line"><span class="keyword">from</span> ray.data <span class="keyword">import</span> DataContext</span><br><span class="line"><span class="keyword">from</span> ray.data._internal.execution.interfaces <span class="keyword">import</span> ExecutionOptions</span><br><span class="line"></span><br><span class="line">ctx = DataContext.get_current()</span><br><span class="line"></span><br><span class="line"><span class="comment"># --- Block sizing ---</span></span><br><span class="line">ctx.target_max_block_size = <span class="number">64</span> * <span class="number">1024</span> ** <span class="number">2</span>   <span class="comment"># 64 MiB (default 512 MiB)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># --- Prefetch ---</span></span><br><span class="line">ctx.prefetch_blocks = <span class="number">0</span>                        <span class="comment"># no speculative prefetch</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># --- Streaming executor memory cap ---</span></span><br><span class="line">ctx.execution_options = ExecutionOptions(</span><br><span class="line">    preserve_order=<span class="literal">False</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Then launch normally:</span></span><br><span class="line"><span class="keyword">from</span> data_juicer.tools.analyze <span class="keyword">import</span> main</span><br><span class="line">main()</span><br></pre></td></tr></table></figure>
+<p>In the Data-Juicer YAML config, also set:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">use_cache:</span> <span class="literal">false</span></span><br><span class="line"><span class="attr">batch_size:</span> <span class="number">100</span>           <span class="comment"># start small, increase if memory allows</span></span><br><span class="line"><span class="attr">adaptive_batch_size:</span> <span class="literal">true</span>  <span class="comment"># let dj shrink batch on OOM</span></span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">Author: </span><span class="post-copyright-info"><a href="https://laurentluojiawei.github.io">John Doe</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">Link: </span><span class="post-copyright-info"><a href="https://laurentluojiawei.github.io/2026/03/12/dj-analyze-memory-safety/">https://laurentluojiawei.github.io/2026/03/12/dj-analyze-memory-safety/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">Copyright Notice: </span><span class="post-copyright-info">All articles in this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless stating additionally.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/gh/overtrue/share.js@master/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="pagination-post-prev post-nav"><a class="prev" href="/2022/06/13/hello-world/"><i class="fas fa-chevron-left"></i><div class="pagination-post-title"><div class="pagination-post-caption">Prev</div><div class="pagination-post-name">Hello World</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://i.loli.net/2021/02/24/5O1day2nriDzjSu.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">John Doe</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">0</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">0</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-number">1.</span> <span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Batch-Configuration"><span class="toc-number">2.</span> <span class="toc-text">1. Batch Configuration</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Block-Configuration"><span class="toc-number">3.</span> <span class="toc-text">2. Block (Ray Dataset) Configuration</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Prefetch-Configuration"><span class="toc-number">4.</span> <span class="toc-text">3. Prefetch Configuration</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Streaming-Configuration"><span class="toc-number">5.</span> <span class="toc-text">4. Streaming / Lazy Execution Configuration</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Troubleshooting"><span class="toc-number">6.</span> <span class="toc-text">5. Troubleshooting</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#dj-analyze-help-shows-adaptive_batch_size-but-not-Ray-DataContext-options"><span class="toc-number">6.1.</span> <span class="toc-text">5.1 dj-analyze --help shows --adaptive_batch_size but not Ray DataContext options</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Locating-Ray-DataContext-usage-in-a-checked-out-Data-Juicer-repo"><span class="toc-number">6.2.</span> <span class="toc-text">5.2 Locating Ray DataContext usage in a checked-out Data-Juicer repo</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Directory-name-confusion-when-running-grep"><span class="toc-number">6.3.</span> <span class="toc-text">5.3 Directory name confusion when running grep</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Summary-of-recommended-settings"><span class="toc-number">7.</span> <span class="toc-text">6. Summary of Recommended Settings for Memory-Constrained Machines</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/12/dj-analyze-memory-safety/" title="dj-analyze Memory-Safety Configuration"><img src="" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="dj-analyze Memory-Safety Configuration"/></a><div class="content"><a class="title" href="/2026/03/12/dj-analyze-memory-safety/" title="dj-analyze Memory-Safety Configuration">dj-analyze Memory-Safety Configuration</a><time datetime="2026-03-12T13:44:14.250Z" title="Created 2026-03-12 13:44:14">2026-03-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/06/13/hello-world/" title="Hello World"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Hello World"/></a><div class="content"><a class="title" href="/2022/06/13/hello-world/" title="Hello World">Hello World</a><time datetime="2022-06-12T16:34:14.303Z" title="Created 2022-06-13 00:34:14">2022-06-13</time></div></div></div></div><div class="card-widget card-archives"><div class="item-headline"><i class="fas fa-archive"></i><span>Archives</span></div><ul class="card-archive-list"><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2026/03/"><span class="card-archive-list-date">March 2026</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2022/06/"><span class="card-archive-list-date">June 2022</span><span class="card-archive-list-count">1</span></a></li></ul></div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>Info</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">Article :</div><div class="item-count">2</div></div><div class="webinfo-item"><div class="item-name">UV :</div><div class="item-count" id="busuanzi_value_site_uv"></div></div><div class="webinfo-item"><div class="item-name">PV :</div><div class="item-count" id="busuanzi_value_site_pv"></div></div><div class="webinfo-item"><div class="item-name">Last Push :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-03-12T13:44:14.250Z"></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2026 By John Doe</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
