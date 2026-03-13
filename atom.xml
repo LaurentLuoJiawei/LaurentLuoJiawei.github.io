@@ -6,7 +6,7 @@
   <link href="https://laurentluojiawei.github.io/atom.xml" rel="self"/>
   
   <link href="https://laurentluojiawei.github.io/"/>
-  <updated>2022-06-12T16:34:14.304Z</updated>
+  <updated>2026-03-13T07:28:05.982Z</updated>
   <id>https://laurentluojiawei.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Fixing the Data-Juicer Ray Config Warning</title>
+    <link href="https://laurentluojiawei.github.io/2026/03/13/data-juicer-ray-config-warning/"/>
+    <id>https://laurentluojiawei.github.io/2026/03/13/data-juicer-ray-config-warning/</id>
+    <published>2026-03-13T07:28:05.982Z</published>
+    <updated>2026-03-13T07:28:05.982Z</updated>
+    
+    <content type="html"><![CDATA[<p>If you are running <a href="https://github.com/modelscope/data-juicer">Data-Juicer</a> and see the following warning repeated in your logs:</p><pre><code>data_juicer.utils.ray_utils: No ray config provided, using default ray address &#39;auto&#39;</code></pre><p>this guide explains what the warning means, how to silence it by providing an explicit Ray configuration, and how to reduce log spam overall.</p><h2 id="Understanding-the-Warning">Understanding the Warning</h2><p>Data-Juicer uses <a href="https://www.ray.io/">Ray</a> as its distributed execution backend. When <code>data_juicer.utils.ray_utils</code> initialises Ray it looks for an explicit Ray address (the address of an already-running Ray head node). If none is found it falls back to the string <code>&#39;auto&#39;</code>, which tells Ray to attempt automatic cluster discovery. The warning is emitted once per call to the initialisation helper, so it can appear many times if the helper is invoked repeatedly.</p><h2 id="Providing-Ray-Configuration">Providing Ray Configuration</h2><h3 id="Via-Environment-Variable-RAY-ADDRESS">Via Environment Variable (RAY_ADDRESS)</h3><p>The simplest way to point Data-Juicer at a specific Ray cluster is to set the <code>RAY_ADDRESS</code> environment variable before starting your job:</p><pre><code class="language-bash">export RAY_ADDRESS=&quot;ray://127.0.0.1:10001&quot;</code></pre><h3 id="Via-CLI-Argument">Via CLI Argument</h3><pre><code class="language-bash">python -m data_juicer.tools.process_data \
+    --config my_config.yaml \
+    --ray_address &quot;ray://127.0.0.1:10001&quot;</code></pre><h3 id="Via-Data-Juicer-Config-File">Via Data-Juicer Config File</h3><pre><code class="language-yaml">executor_type: &#39;ray&#39;
+ray_address: &#39;ray://127.0.0.1:10001&#39;</code></pre><h2 id="Starting-a-Ray-Cluster">Starting a Ray Cluster</h2><pre><code class="language-bash">ray start --head --port=6379
+export RAY_ADDRESS=&quot;ray://127.0.0.1:10001&quot;</code></pre><h2 id="Reducing-Log-Spam">Reducing Log Spam</h2><h3 id="Setting-the-Log-Level">Setting the Log Level</h3><pre><code class="language-python">import logging
+logging.getLogger(&#39;data_juicer.utils.ray_utils&#39;).setLevel(logging.ERROR)</code></pre><h3 id="Ensuring-Ray-is-Initialized-Once">Ensuring Ray is Initialized Once</h3><pre><code class="language-python">import ray
+if not ray.is_initialized():
+    ray.init(address=&quot;ray://127.0.0.1:10001&quot;)</code></pre><h2 id="Troubleshooting">Troubleshooting</h2><p><strong>Warning still appears after setting RAY_ADDRESS</strong>: Make sure the variable is exported before the Python process starts.</p><p><strong>Ray cannot connect to the head node</strong>: Check that the Ray head node is running (<code>ray status</code>) and that the port is reachable. Use <code>ray://HOST:10001</code> for the Ray client protocol.</p><p><strong>Multiple warnings per second</strong>: Add the <code>ray.is_initialized()</code> guard to prevent redundant calls.</p><p><strong>Error: RuntimeError: Ray address is not set</strong>: Start a head node with <code>ray start --head</code> and set <code>RAY_ADDRESS</code> as described above.</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">Learn how to fix the repeated Data-Juicer warning &quot;No ray config provided, using default ray address auto&quot;. Covers CLI, environment variables, config files, and how to reduce log spam.</summary>
+      
+    
+    
+    
+    
+  </entry>
   
   <entry>
     <title>Hello World</title>
